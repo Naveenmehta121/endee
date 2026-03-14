@@ -1,54 +1,92 @@
-from sentence_transformers import SentenceTransformer
-import numpy as np
-import requests
-import os
+"""
+search.py - Semantic vector search engine
 
+At startup this module:
+1. Loads the embedding model
+2. Loads the local NumPy fallback embeddings and documents
+3. Attempts to connect to Endee via the Python SDK
+
+search() will first try the Endee SDK query.
+If the Endee server is unavailable for any reason it transparently
+falls back to the local NumPy cosine similarity search.
+"""
+
+import os
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+# ─── Embedding Model ─────────────────────────────────────────────────────────
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# We will load the exact documents we encoded
-docs_path = "../data/docs_filtered.txt"
-if not os.path.exists(docs_path):
-    docs_path = "../data/docs.txt"
+# ─── NumPy Fallback Resources ─────────────────────────────────────────────────
+_base = os.path.dirname(__file__)
 
-with open(docs_path, "r", encoding="utf-8") as f:
-    documents = [doc.strip() for doc in f.readlines() if doc.strip()]
+_docs_path = os.path.join(_base, "../data/docs_filtered.txt")
+if not os.path.exists(_docs_path):
+    _docs_path = os.path.join(_base, "../data/docs.txt")
+
+with open(_docs_path, "r", encoding="utf-8") as _f:
+    _documents = [line.strip() for line in _f.readlines() if line.strip()]
 
 try:
-    embeddings = np.load("../data/embeddings.npy")
+    _embeddings = np.load(os.path.join(_base, "../data/embeddings.npy"))
 except FileNotFoundError:
-    embeddings = None
+    _embeddings = None
 
-def search(query, top_k=2, threshold=0.3):
-    query_vector = model.encode(query).tolist()
-    
-    payload = {
-        "vector": query_vector,
-        "top_k": top_k
-    }
+# ─── Endee SDK Connection ─────────────────────────────────────────────────────
+_endee_index = None
+_endee_available = False
 
-    try:
-        response = requests.post(
-            "http://localhost:8080/api/v1/vectors/search",
-            json=payload,
-            timeout=1
-        )
-        response.raise_for_status()
-        return response.json()
+try:
+    import endee as _endee_module
 
-    except:
-        print("Endee server not running - using fallback search")
-        if embeddings is None:
-            return ["Fallback numpy embeddings not found."]
-            
-        # Fallback to local Numpy vector search
-        query_embedding = model.encode([query], normalize_embeddings=True)[0]
-        similarities = np.dot(embeddings, query_embedding)
-        
-        results = []
-        top_indices = np.argsort(similarities)[::-1]
-        
-        for i in top_indices:
-            if similarities[i] >= threshold and len(results) < top_k:
-                results.append(documents[i])
-                
-        return results
+    _client = _endee_module.Endee(token="local:local")
+    _client.set_base_url("http://localhost:8080")
+
+    INDEX_NAME = "devassist"
+    _endee_index = _client.get_index(INDEX_NAME)
+    _endee_available = True
+    print(f"✅ Endee SDK connected — using index '{INDEX_NAME}'")
+
+except ImportError:
+    print("⚠️  'endee' package not installed — falling back to NumPy search.")
+except Exception as exc:
+    print(f"⚠️  Endee server not reachable ({exc}) — falling back to NumPy search.")
+
+
+# ─── Search Function ──────────────────────────────────────────────────────────
+def search(query: str, top_k: int = 3) -> list[str]:
+    """
+    Returns the top_k most semantically similar documents for the given query.
+
+    Strategy:
+      1. Try Endee SDK query() → extract meta["text"] from results
+      2. On any failure, fall back to NumPy cosine similarity
+    """
+    query_vector = model.encode(query, normalize_embeddings=True).tolist()
+
+    # ── Endee SDK path ────────────────────────────────────────────────────────
+    if _endee_available and _endee_index is not None:
+        try:
+            results = _endee_index.query(vector=query_vector, top_k=top_k)
+            texts = [
+                r["meta"]["text"]
+                for r in results
+                if "meta" in r and "text" in r.get("meta", {})
+            ]
+            if texts:
+                return texts
+        except Exception as exc:
+            print(f"⚠️  Endee query failed ({exc}), falling back to NumPy.")
+
+    # ── NumPy Fallback path ───────────────────────────────────────────────────
+    if _embeddings is None:
+        return ["Knowledge base not indexed yet. Please run backend/ingest.py first."]
+
+    similarities = np.dot(_embeddings, np.array(query_vector, dtype=np.float32))
+    top_indices = np.argsort(similarities)[::-1][:top_k]
+
+    results = [_documents[i] for i in top_indices if similarities[i] > 0.1]
+    if not results:
+        return ["No relevant context found. Try rephrasing your question."]
+    return results

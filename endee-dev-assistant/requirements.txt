@@ -4,3 +4,5 @@ uvicorn
 streamlit
 numpy
 requests
+endee
+huggingface_hub
