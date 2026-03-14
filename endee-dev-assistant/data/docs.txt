@@ -1,0 +1,20 @@
+React hooks allow functional components to manage state and lifecycle methods without writing class components.
+Binary search is an efficient algorithm that searches for an element in a sorted array by repeatedly halving the search space.
+FastAPI is a modern, high-performance Python web framework for building REST APIs with automatic OpenAPI documentation.
+Python dictionaries store key-value pairs and provide O(1) average time complexity for lookups, inserts, and deletes.
+Machine learning models learn statistical patterns from training data to make predictions on unseen inputs.
+A vector database stores high-dimensional embeddings and enables millisecond similarity searches using approximate nearest-neighbor algorithms.
+Semantic search finds results based on the meaning of a query rather than exact keyword matches by comparing embedding vectors.
+Docker is a platform that packages applications and their dependencies into portable containers for consistent deployments.
+Git is a distributed version control system that tracks changes in source code and enables team collaboration.
+useEffect is a React hook used to synchronize components with external systems like APIs, timers, or DOM manipulation.
+useState is a React hook that lets you add a state variable to a functional component.
+REST APIs use HTTP methods (GET, POST, PUT, DELETE) to perform CRUD operations on web resources.
+Embeddings are dense numerical vector representations of text that capture semantic meaning in multi-dimensional space.
+NumPy is a Python library for high-performance numerical computing, providing multi-dimensional array support and mathematical operations.
+Cosine similarity measures the angle between two vectors and is commonly used to compare text embeddings in vector search.
+A RAG (Retrieval-Augmented Generation) pipeline retrieves relevant context from a vector database before passing it to an LLM.
+SQL databases store structured data in tables with rows and columns and use SQL for querying and manipulation.
+Docker Compose is a tool for defining and running multi-container Docker applications using a YAML configuration file.
+An API endpoint is a specific URL on a server that accepts requests and returns a response, typically in JSON format.
+Sentence Transformers is a Python library that provides pre-trained models for generating state-of-the-art sentence and text embeddings.
