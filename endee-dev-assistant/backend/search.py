@@ -3,35 +3,17 @@ search.py - Semantic vector search engine
 
 At startup this module:
 1. Loads the embedding model
-2. Loads the local NumPy fallback embeddings and documents
-3. Attempts to connect to Endee via the Python SDK
+2. Attempts to connect to Endee via the Python SDK
 
-search() will first try the Endee SDK query.
-If the Endee server is unavailable for any reason it transparently
-falls back to the local NumPy cosine similarity search.
+search() will exclusively try the Endee SDK query.
+If the Endee server is unavailable, it will return an explicit error message.
 """
 
 import os
-import numpy as np
 from sentence_transformers import SentenceTransformer
 
 # ─── Embedding Model ─────────────────────────────────────────────────────────
 model = SentenceTransformer("all-MiniLM-L6-v2")
-
-# ─── NumPy Fallback Resources ─────────────────────────────────────────────────
-_base = os.path.dirname(__file__)
-
-_docs_path = os.path.join(_base, "../data/docs_filtered.txt")
-if not os.path.exists(_docs_path):
-    _docs_path = os.path.join(_base, "../data/docs.txt")
-
-with open(_docs_path, "r", encoding="utf-8") as _f:
-    _documents = [line.strip() for line in _f.readlines() if line.strip()]
-
-try:
-    _embeddings = np.load(os.path.join(_base, "../data/embeddings.npy"))
-except FileNotFoundError:
-    _embeddings = None
 
 # ─── Endee SDK Connection ─────────────────────────────────────────────────────
 _endee_index = None
@@ -49,9 +31,9 @@ try:
     print(f"✅ Endee SDK connected — using index '{INDEX_NAME}'")
 
 except ImportError:
-    print("⚠️  'endee' package not installed — falling back to NumPy search.")
+    print("⚠️  'endee' package not installed.")
 except Exception as exc:
-    print(f"⚠️  Endee server not reachable ({exc}) — falling back to NumPy search.")
+    print(f"⚠️  Endee server not reachable ({exc}).")
 
 
 # ─── Search Function ──────────────────────────────────────────────────────────
@@ -61,33 +43,26 @@ def search(query: str, top_k: int = 3) -> list[str]:
 
     Strategy:
       1. Try Endee SDK query() → extract meta["text"] from results
-      2. On any failure, fall back to NumPy cosine similarity
+      2. On failure, return a loud error instructing the user to start Endee.
     """
+    if not _endee_available or _endee_index is None:
+         return ["Error: Endee Vector Database is not reachable. Please ensure the server is running on port 8080."]
+
     query_vector = model.encode(query, normalize_embeddings=True).tolist()
 
     # ── Endee SDK path ────────────────────────────────────────────────────────
-    if _endee_available and _endee_index is not None:
-        try:
-            results = _endee_index.query(vector=query_vector, top_k=top_k)
-            texts = [
-                r["meta"]["text"]
-                for r in results
-                if "meta" in r and "text" in r.get("meta", {})
-            ]
-            if texts:
-                return texts
-        except Exception as exc:
-            print(f"⚠️  Endee query failed ({exc}), falling back to NumPy.")
+    try:
+        results = _endee_index.query(vector=query_vector, top_k=top_k)
+        texts = [
+            r["meta"]["text"]
+            for r in results
+            if "meta" in r and "text" in r.get("meta", {})
+        ]
+        if texts:
+            return texts
+        else:
+            return ["No relevant context found in the knowledge base. Try asking about Python, FastAPI, React, Docker, Git, or machine learning."]
+    except Exception as exc:
+        print(f"⚠️  Endee query failed ({exc}).")
+        return [f"Error querying Endee Vector Database: {exc}. Ensure the server is healthy."]
 
-    # ── NumPy Fallback path ───────────────────────────────────────────────────
-    if _embeddings is None:
-        return ["Knowledge base not indexed yet. Please run backend/ingest.py first."]
-
-    similarities = np.dot(_embeddings, np.array(query_vector, dtype=np.float32))
-    top_indices = np.argsort(similarities)[::-1][:top_k]
-
-    # Threshold of 0.35 prevents returning unrelated docs when query doesn't match anything
-    results = [_documents[i] for i in top_indices if similarities[i] > 0.35]
-    if not results:
-        return ["No relevant context found in the knowledge base. Try asking about Python, FastAPI, React, Docker, Git, or machine learning."]
-    return results

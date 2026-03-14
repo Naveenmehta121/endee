@@ -108,8 +108,7 @@ with st.sidebar:
     st.divider()
     
     st.markdown("### ⚙️ Architecture")
-    st.caption("Engine: `all-MiniLM-L6-v2`")
-    st.caption("Storage: `Endee Vector REST API` / `NumPy Fallback`")
+    st.caption("Storage: `Endee Vector REST API`")
 
 # Main Content Area
 col1, col2, col3 = st.columns([1, 6, 1])
