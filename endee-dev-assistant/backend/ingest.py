@@ -1,6 +1,7 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import os
+import requests
 
 # Load embedding model
 model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -25,3 +26,26 @@ with open("../data/docs_filtered.txt", "w", encoding="utf-8") as f:
         f.write(doc + "\n")
 
 print("Embeddings generated and saved successfully!")
+
+# Endee Integration Workaround
+for i, doc in enumerate(documents):
+    vector = embeddings[i].tolist()
+    
+    payload = {
+        "id": f"doc_{i}",
+        "vector": vector,
+        "metadata": {
+            "text": doc
+        }
+    }
+
+    try:
+        requests.post(
+            "http://localhost:8080/api/v1/vectors/insert",
+            json=payload,
+            timeout=1
+        )
+        print("Inserted:", doc)
+    except:
+        print("Endee server not running, skipping insert")
+        break
