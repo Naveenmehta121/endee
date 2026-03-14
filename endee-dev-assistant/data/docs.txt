@@ -18,3 +18,13 @@ SQL databases store structured data in tables with rows and columns and use SQL 
 Docker Compose is a tool for defining and running multi-container Docker applications using a YAML configuration file.
 An API endpoint is a specific URL on a server that accepts requests and returns a response, typically in JSON format.
 Sentence Transformers is a Python library that provides pre-trained models for generating state-of-the-art sentence and text embeddings.
+Java is a statically typed, object-oriented programming language used for building enterprise applications and Android apps.
+The Java SDK (JDK) provides tools like the compiler, debugger, and runtime environment needed to develop and run Java programs.
+JavaScript is a dynamic scripting language used to add interactivity and logic to web pages on the client side.
+TypeScript is a strongly typed superset of JavaScript that compiles to plain JavaScript and adds static type checking.
+CSS is used to style HTML elements, controlling layout, colors, fonts, and responsive design using selectors and properties.
+Node.js is a JavaScript runtime built on Chrome's V8 engine that allows JavaScript to run on the server side.
+A linked list is a data structure where each element (node) contains data and a pointer to the next node in the sequence.
+Recursion is a programming technique where a function calls itself to solve smaller instances of the same problem.
+Big O notation describes the time or space complexity of an algorithm as the input size grows.
+Python is a high-level, interpreted programming language known for its readable syntax and wide use in data science and web development.

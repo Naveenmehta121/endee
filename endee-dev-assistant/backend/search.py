@@ -86,7 +86,8 @@ def search(query: str, top_k: int = 3) -> list[str]:
     similarities = np.dot(_embeddings, np.array(query_vector, dtype=np.float32))
     top_indices = np.argsort(similarities)[::-1][:top_k]
 
-    results = [_documents[i] for i in top_indices if similarities[i] > 0.1]
+    # Threshold of 0.35 prevents returning unrelated docs when query doesn't match anything
+    results = [_documents[i] for i in top_indices if similarities[i] > 0.35]
     if not results:
-        return ["No relevant context found. Try rephrasing your question."]
+        return ["No relevant context found in the knowledge base. Try asking about Python, FastAPI, React, Docker, Git, or machine learning."]
     return results
